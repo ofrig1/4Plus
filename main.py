@@ -72,7 +72,7 @@ def protocol_receive(my_socket):
         logging.error(f"Socket error: {e}")
         return ''
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        logging.exception(f"An unexpected error occurred: {e}")
         return ''
 
 
@@ -136,11 +136,15 @@ def handle_error(client_socket, status_code, status_text):
             content_type += f"\r\nContent-Type: {image_content_type}"
             # Add image data to the error page
             error_page_data = error_page_data.replace(b"<!-- INSERT_IMAGE_HERE -->", image_data)
-        error_header = f"{HTTP_DICTIONARY[status_code]}Content-Type: {content_type}\r\nContent-Length: {len(error_page_data)}\r\n\r\n"
+        error_header = (
+            f"{HTTP_DICTIONARY[status_code]}Content-Type: {content_type}\r\n"
+            f"Content-Length: {len(error_page_data)}\r\n\r\n"
+        )
         error_response = error_header.encode() + error_page_data
         client_socket.send(error_response)
     else:
         error_message = f"{status_code} {status_text}"
+        http_beginner = ''
         if status_code in HTTP_DICTIONARY:
             http_beginner = HTTP_DICTIONARY[status_code]
         error_header = (
@@ -175,7 +179,10 @@ def calculate_next(query_params, client_socket):
             next_num = num + 1
             response_body = str(next_num)
             content_length = len(response_body)
-            http_header = f"{HTTP_DICTIONARY[OK]}Content-Type: text/plain;charset=utf-8\r\nContent-Length: {content_length}\r\n\r\n"
+            http_header = (
+                f"{HTTP_DICTIONARY[OK]}Content-Type: text/plain;charset=utf-8\r\n"
+                f"Content-Length: {content_length}\r\n\r\n"
+            )
             http_response = http_header.encode() + response_body.encode()
             client_socket.send(http_response)
             return
@@ -201,7 +208,10 @@ def calculate_area(query_params, client_socket):
             area = (height * width)/2
             response_body = str(area)
             content_length = len(response_body)
-            http_header = f"{HTTP_DICTIONARY[OK]}Content-Type: text/plain;charset=utf-8\r\nContent-Length: {content_length}\r\n\r\n"
+            http_header = (
+                f"{HTTP_DICTIONARY[OK]}Content-Type: text/plain;charset=utf-8\r\n"
+                f"Content-Length: {content_length}\r\n\r\n"
+            )
             http_response = http_header.encode() + response_body.encode()
             client_socket.send(http_response)
             return
@@ -271,6 +281,12 @@ def handle_upload(query_params, client_socket, headers):
 
 
 def handle_image(query_params, client_socket):
+    """
+    get posted image function
+    :param query_params: image-name
+    :param client_socket:
+    :return: image
+    """
     if 'image-name' in query_params:
         try:
             image_name = query_params['image-name'][0]
@@ -441,12 +457,15 @@ def main():
 
 
 if __name__ == "__main__":
+    assert OK == 200
+    assert FOUND == 302
     assert INVALID_REQUEST_ERROR == 400
     assert FILE_NOT_FOUND_ERROR == 404
     assert FORBIDDEN_ERROR == 403
     assert INTERNAL_SERVER_ERROR == 500
-    # assert validate_http_request('GET /index.html HTTP/1.1\r\n') == (True, '/index.html')
-    # assert validate_http_request('POST /index.html HTTP/1.1\r\n') == (False, '')
+    assert PICTURE_NOT_FOUND_ERROR == 501
+    assert validate_http_request('GET /index.html HTTP/1.1\r\n') == (True, '/index.html')
+    assert validate_http_request('PUT /index.html HTTP/1.1\r\n') == (False, '')
     assert get_content_type('html') == 'text/html;charset=utf-8'
     assert get_content_type('jpg') == 'image/jpeg'
     assert get_content_type('css') == 'text/css'
